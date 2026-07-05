@@ -994,11 +994,8 @@ function closeAbout(e) {
   aboutEl.classList.remove("open");
 }
 
-function closeAboutFromBackdrop(e) {
-  if (e.target === aboutEl) closeAbout(e);
-}
-
 let aboutPointer = null;
+let aboutTouch = null;
 
 function aboutScrollTop(target) {
   const sheet = target.closest ? target.closest("#about .sheet") : null;
@@ -1024,11 +1021,35 @@ function closeAboutOnTap(e) {
   if (dx < 8 && dy < 8 && scrolled < 2) closeAbout(e);
 }
 
+function rememberAboutTouch(e) {
+  if (!aboutEl.classList.contains("open") || !e.changedTouches.length) return;
+  const touch = e.changedTouches[0];
+  aboutTouch = {
+    id: touch.identifier,
+    x: touch.clientX,
+    y: touch.clientY,
+    scrollTop: aboutScrollTop(e.target)
+  };
+}
+
+function closeAboutOnTouchTap(e) {
+  if (!aboutTouch || !e.changedTouches.length) return;
+  const touch = Array.from(e.changedTouches).find((item) => item.identifier === aboutTouch.id);
+  if (!touch) return;
+  const dx = Math.abs(touch.clientX - aboutTouch.x);
+  const dy = Math.abs(touch.clientY - aboutTouch.y);
+  const scrolled = Math.abs(aboutScrollTop(e.target) - aboutTouch.scrollTop);
+  aboutTouch = null;
+  if (dx < 10 && dy < 10 && scrolled < 2) closeAbout(e);
+}
+
 infoBtn.addEventListener("click", openAbout);
 infoBtn.addEventListener("touchstart", openAbout, { passive: true });
-aboutEl.addEventListener("click", closeAboutFromBackdrop);
+aboutEl.addEventListener("click", closeAbout);
 aboutEl.addEventListener("pointerdown", rememberAboutPointer, { passive: true });
 aboutEl.addEventListener("pointerup", closeAboutOnTap);
+aboutEl.addEventListener("touchstart", rememberAboutTouch, { passive: true });
+aboutEl.addEventListener("touchend", closeAboutOnTouchTap, { passive: false });
 
 document.addEventListener("keydown", (e) => {
   startAmbient();
