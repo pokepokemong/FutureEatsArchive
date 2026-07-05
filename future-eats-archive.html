@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>미래는 과거를 먹고 말한다</title>
+<style>
+  :root {
+    --spread: 0em;
+    --line: 1.9;
+    --ink: #e8e6e1;
+    --tremble: 0px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100dvh;
+    overflow: hidden;
+    background: #000;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: "Nanum Myeongjo", "Noto Serif KR", "Apple SD Gothic Neo", serif;
+    -webkit-font-smoothing: antialiased;
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  #scroll {
+    width: min(38em, 88vw);
+    height: 100%;
+    overflow-y: hidden;
+    padding: 18dvh 0 22dvh;
+    mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 82%, transparent 97%);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%, black 82%, transparent 97%);
+  }
+
+  #text {
+    font-size: clamp(16px, 2.4vw, 21px);
+    line-height: var(--line);
+    letter-spacing: var(--spread);
+    color: var(--ink);
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    transition: line-height 0.9s ease, letter-spacing 0.9s ease, color 1.2s ease;
+  }
+
+  .live {
+    display: inline-block;
+    animation: tremble 0.09s infinite steps(2);
+  }
+
+  @keyframes tremble {
+    0% { transform: translate(calc(var(--tremble) * -1), var(--tremble)); }
+    100% { transform: translate(var(--tremble), calc(var(--tremble) * -1)); }
+  }
+
+  .cmd {
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    font-size: 0.78em;
+    color: #777;
+    letter-spacing: 0.14em;
+  }
+
+  .cut { color: #555; }
+
+  #cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.05em;
+    margin-left: 0.1em;
+    vertical-align: text-bottom;
+    background: var(--ink);
+    animation: blink 1.1s steps(1) infinite;
+  }
+
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #hint {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 1.4s ease;
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+
+  #hint.gone { opacity: 0; }
+  #hint.waiting { opacity: 0; transition: none; }
+
+  #hint .half {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+    color: #777;
+    font-size: 15px;
+    letter-spacing: 0.15em;
+  }
+
+  #hint .half:first-child { border-bottom: 1px solid #1c1c1c; }
+
+  #hint .key {
+    font-size: 11px;
+    color: #444;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 2px 8px;
+    letter-spacing: 0.05em;
+  }
+
+  #epigraph {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    transition: opacity 1.6s ease;
+  }
+
+  #epigraph.gone { opacity: 0; pointer-events: none; }
+
+  #epigraph .inner {
+    width: min(32em, 84vw);
+    animation: epiIn 2.2s ease both;
+  }
+
+  @keyframes epiIn { from { opacity: 0; } to { opacity: 1; } }
+
+  #epigraph .q {
+    color: #cfccc6;
+    font-size: clamp(16px, 2.6vw, 22px);
+    line-height: 2.1;
+    word-break: keep-all;
+    margin-bottom: 0.9em;
+  }
+
+  #epigraph .attr {
+    margin-top: 2.4em;
+    color: #575757;
+    font-size: clamp(11px, 1.5vw, 13px);
+    letter-spacing: 0.12em;
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+
+  #infoBtn {
+    position: fixed;
+    right: max(16px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    z-index: 30;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4a4a4a;
+    border: 1px solid #242424;
+    border-radius: 50%;
+    font-family: "Nanum Myeongjo", "Noto Serif KR", Georgia, serif;
+    font-style: italic;
+    font-size: 15px;
+    cursor: pointer;
+    transition: color 0.4s ease, border-color 0.4s ease;
+  }
+
+  #infoBtn:hover { color: #999; border-color: #444; }
+
+  #about {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(0, 0, 0, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    cursor: pointer;
+  }
+
+  #about.open { opacity: 1; pointer-events: auto; }
+
+  #about .sheet {
+    width: min(34em, 86vw);
+    max-height: 82dvh;
+    overflow-y: auto;
+    color: #b5b2ac;
+    font-size: clamp(13px, 1.7vw, 15px);
+    line-height: 1.95;
+    word-break: keep-all;
+  }
+
+  #about h2 {
+    font-weight: 400;
+    font-size: 1.5em;
+    color: #ddd;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.2em;
+  }
+
+  #about .meta {
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    font-size: 0.8em;
+    color: #5c5c5c;
+    letter-spacing: 0.08em;
+    margin-bottom: 2.2em;
+  }
+
+  #about p { margin-bottom: 1.3em; }
+
+  #about .sec {
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    font-size: 0.72em;
+    color: #4e4e4e;
+    letter-spacing: 0.35em;
+    margin: 2.6em 0 1.2em;
+    padding-top: 1.6em;
+    border-top: 1px solid #1a1a1a;
+  }
+
+  #about .sec:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  #about .manual {
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    font-size: 0.85em;
+    color: #7d7a75;
+    line-height: 2.3;
+    letter-spacing: 0.04em;
+  }
+
+  #about .manual b { color: #b5b2ac; font-weight: 500; }
+
+  #about .manual .k {
+    display: inline-block;
+    min-width: 8.5em;
+    color: #565656;
+    letter-spacing: 0.08em;
+  }
+
+  #about .close {
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    font-size: 0.75em;
+    color: #3f3f3f;
+    letter-spacing: 0.2em;
+    margin-top: 2.4em;
+    text-align: center;
+  }
+
+  #drift {
+    position: fixed;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    left: 0;
+    width: 100%;
+    text-align: center;
+    z-index: 10;
+    color: #3a3a3a;
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    pointer-events: none;
+  }
+
+  #drift.show { opacity: 1; }
+
+  #pulse {
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.05), transparent 70%);
+  }
+
+  #pulse.hit { animation: pulse 0.22s ease-out; }
+
+  @keyframes pulse { 0% { opacity: 1; } 100% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="scroll"><div id="text"><span id="done"></span><span class="live" id="live"></span><span id="cursor"></span></div></div>
+</div>
+
+<div id="pulse"></div>
+<div id="drift"></div>
+<div id="infoBtn">i</div>
+
+<div id="epigraph">
+  <div class="inner">
+    <div class="q">질주하는 자동차는<br>사모트라케의 니케보다 아름답다.</div>
+    <div class="q">박물관과 도서관을 파괴하라.<br>우리는 불가능의 문을 부수고자 한다.</div>
+    <div class="attr">F. T. Marinetti, Manifesto of Futurism, 1909 / 번역</div>
+  </div>
+</div>
+
+
+<div id="about">
+  <div class="sheet">
+    <h2>미래는 과거를 먹고 말한다</h2>
+    <div class="meta">Future Eats Archive · 단일 HTML · 문자 단위 n-gram · 2026</div>
+
+    <div class="sec">작업 설명</div>
+
+    <p>《미래는 과거를 먹고 말한다》는 1909년 미래주의 선언문을 재료로 삼아, 과거와 미래의 관계가 어떻게 달라졌는지를 묻는 상호작용형 텍스트 작업이다.</p>
+
+    <p>미래주의자들은 박물관과 도서관을 파괴하라고 외쳤다. 그들에게 미래란 과거를 끊어내고, 속도와 기계의 힘으로 도달해야 할 것이었다. 오늘날의 알고리즘은 과거를 저장하고, 수집하고, 학습하고, 통계화한다. 그리고 그 축적된 과거의 잔여물로부터 다음 문장을 예측한다.</p>
+
+    <p>이 작업에서 기계는 미래주의 선언문을 삼킨다. 관객은 화면을 통해 “더 새롭게” 혹은 “더 깊이”라는 명령을 내릴 수 있다. 새로움을 요구할수록 문장은 점점 흩어지고, 깊이를 요구할수록 문장은 더 긴 기억을 붙잡고 촘촘하게 이어진다. 새로움은 붕괴에 가까워지고, 깊이는 축적에 가까워진다.</p>
+
+    <p>이 작업은 그 사이에 놓인 감각을 따라간다. 과거를 부수어야 미래가 온다고 믿었던 시대 이후, 과거를 먹어야만 미래를 말할 수 있는 기계의 시간 속에서 우리는 다음 문장을 기다린다.</p>
+
+    <div class="sec">작업 노트</div>
+
+    <p>20세기 초의 아방가르드는 미래를 향해 돌진하기 위해 과거를 파괴하려 했다. 미래주의 선언문은 그 욕망을 가장 노골적인 문장으로 드러낸다. 박물관을 부수고, 도서관을 불태우고, 오래된 감수성을 폐기하라는 명령. 그들에게 과거는 미래를 가로막는 무게였고, 새로운 시대는 그 무게를 끊어내는 속도 속에서 도래해야 했다.</p>
+
+    <p>오늘날의 기계는 과거를 보존하고, 분해하고, 벡터화하고, 확률로 변환한다. 이미 존재했던 말들의 배열 속에서 아직 오지 않은 듯 보이는 다음 말을 고른다. 이때 미래는 축적된 과거의 재조합으로 나타난다.</p>
+
+    <p>이 작업은 그 전환을 하나의 텍스트 발생 장치로 만든다. 작업 안의 기계는 미래주의 선언문을 원료로 삼아 계속해서 문장을 생성한다. 관객이 “더 새롭게”를 요구하면 기계는 익숙한 연결을 덜 따르고, 다음 글자를 더 자유롭게 고른다. 새로움은 의미의 균열과 붕괴로 이어진다. “더 깊이”를 요구하면 기계는 앞선 문맥을 더 길게 붙잡고, 문장 안의 연결을 더 촘촘하게 이어 쓴다.</p>
+
+    <p>여기서 새로움과 깊이는 모두 과거와 연결되어 있다. 하나는 과거의 문법을 느슨하게 만들며 무너지고, 다른 하나는 과거의 문맥을 더 오래 붙잡으며 축적된다. 알고리즘이 말하는 미래는 과거를 충분히 먹은 뒤에야 출력되는, 과거의 또 다른 형태다.</p>
+
+    <p>과거를 파괴하라던 명령은 이제 과거를 학습하라는 명령으로 바뀌었다. 속도는 연산이 되었고, 파괴는 데이터화가 되었으며, 미래는 예측이 되었다.</p>
+
+    <p>이 작업의 미래는 뒤에 쌓인 문장들을 통과해, 방금 막 도착한 다음 글자의 형태로 나타난다. 과거를 삼킨 기계가 잠시 미래처럼 말한다.</p>
+
+    <p>미래는 과거를 먹고 말한다.</p>
+
+    <div class="sec">사용 방식</div>
+
+    <p class="manual">
+      <span class="k">위쪽 ↑</span><b>더 새롭게</b><br>
+      <span class="k">아래쪽 ↓</span><b>더 깊이</b><br>
+      <span class="k">F5</span><b>처음으로.</b> 다시 시작한다.<br>
+      <span class="k">가만히 있기</span>서서히 중간 상태로 돌아간다.<br>
+      <span class="k">i</span>작업 설명.
+    </p>
+
+    <div class="close">화면을 누르면 닫힙니다</div>
+  </div>
+</div>
+
+<div id="hint" class="waiting">
+  <div class="half">
+    <div>더 새롭게</div>
+    <div class="key" id="hintUp">위쪽 · ↑</div>
+  </div>
+  <div class="half">
+    <div>더 깊이</div>
+    <div class="key" id="hintDown">아래쪽 · ↓</div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   미래는 과거를 먹고 말한다
+   Re: Manifesto, 1909/2026
+
+   이 파일은 서버와 API 없이 동작하는 단일 HTML 작업이다.
+   화면에 나타나는 기계는 작은 문자 단위 n-gram 모델이다.
+   작업이 다루는 시간성은 생성 알고리즘의 시간성과 맞닿아 있다.
+   기계는 먼저 과거의 문장을 먹고, 그 과거의 배열을 통계화한 뒤,
+   다음 글자를 하나씩 예측한다.
+
+   관객은 두 가지 명령만 줄 수 있다.
+
+   - 더 새롭게: 익숙한 연결을 덜 따르고 다음 글자를 더 자유롭게 고른다.
+   - 더 깊이: 앞선 문맥을 더 길게 붙잡고 문장 안의 연결을 촘촘하게 쓴다.
+
+   이 작업의 역설은 여기에 있다.
+   새로움을 요구할수록 의미는 붕괴하고, 깊이를 요구할수록 과거에 갇힌다.
+   미래는 과거의 반대편에서 오지 않는다. 이 기계에게 미래란 과거를 먹은 뒤
+   출력되는 다음 글자다.
+   ============================================================================ */
+
+/* ============================================================================
+   먹히는 과거: 작업의 말뭉치
+
+   아래 텍스트는 기계가 삼키는 과거다. 미래주의 선언문의 어조, 그 선언문을
+   바라보는 작가의 노트, 그리고 현재의 알고리즘 시간성에 대한 문장들이 하나의
+   corpus로 섞여 있다. 기계가 말하는 모든 문장은 이 과거의 재조합이다.
+   ============================================================================ */
+const CORPUS = `우리는 밤새 깨어 있었다. 내 친구들과 나는 세공된 놋쇠 돔을 단 회교 사원의 등불 아래 있었다. 그 돔들은 우리의 정신처럼 별이 박혀 있었고, 전기의 심장에 갇힌 빛처럼 빛나고 있었다. 우리는 오래된 권태를 동양의 두꺼운 양탄자 위에서 짓밟으며, 논리의 마지막 경계까지 논쟁했고, 광란의 낙서로 수많은 종이를 검게 물들였다.
+
+그 시간에 우리는 우리 자신이 홀로 깨어 서 있다고 느꼈다. 적대적인 별들의 군대가 하늘의 진영에서 우리를 노려보는 가운데, 우리는 자랑스러운 등대나 전초병 같았다. 거대한 배의 지옥 같은 화로를 먹이는 화부들과 함께, 미친 항로로 내달리는 기관차의 붉게 달아오른 배 속을 더듬는 검은 유령들과 함께, 도시의 담을 따라 상처 입은 새처럼 비틀거리는 취객들과 함께 홀로 있었다.
+
+갑자기 우리는 몸을 떨었다. 바깥에서 거대한 이층 전차들이 요란한 소리를 내며 지나갔다. 색색의 불빛으로 타오르는 그것들은, 홍수 난 포 강에 갑자기 뿌리 뽑혀 폭포와 협곡을 지나 바다로 끌려가는 축제의 마을들 같았다.
+
+그러자 침묵은 더 깊어졌다. 그러나 오래된 운하가 희미한 기도를 중얼거리고, 병든 궁전들이 축축한 녹색 수염 위로 삐걱이는 뼈 소리를 낼 때, 우리는 창 아래에서 굶주린 자동차들의 포효를 들었다.
+
+“가자!” 내가 말했다. “친구들이여, 떠나자! 신화와 신비주의적 이상은 마침내 패배했다. 우리는 이제 켄타우로스의 탄생을, 곧이어 천사들의 첫 비행을 보게 될 것이다. 삶의 문을 흔들고, 빗장과 경첩을 시험하자. 가자! 저기, 땅 위에 최초의 새벽이 있다. 수천 년의 어둠을 처음으로 가르는 태양의 붉은 칼보다 더 찬란한 것은 없다.”
+
+우리는 콧김을 내뿜는 세 마리 짐승에게 다가가, 그 뜨거운 가슴에 사랑에 찬 손을 얹었다. 나는 관 위의 시체처럼 내 자동차 위에 몸을 뉘었지만, 곧 운전대 아래에서 되살아났다. 그것은 내 배를 위협하는 단두대의 칼날 같았다.
+
+광기의 성난 빗자루가 우리를 우리 자신 밖으로 쓸어냈고, 급류의 바닥처럼 거칠고 깊은 거리들 속으로 몰아넣었다. 여기저기서 창유리를 통과한 병든 가로등 빛은, 사라져 가는 우리의 눈이 가진 기만적인 수학을 의심하라고 가르쳤다.
+
+나는 외쳤다. “냄새다. 냄새만으로도 우리의 짐승들에게는 충분하다.”
+
+그리고 젊은 사자들처럼 우리는 죽음을 뒤쫓았다. 죽음은 창백한 십자가들이 얼룩진 검은 가죽을 두르고, 거대한 보랏빛의 살아 있는 하늘, 고동치는 하늘 아래로 달아났다.
+
+그러나 우리에게는 구름 위로 신성한 모습을 들어 올리는 이상적인 여주인도, 비잔틴 반지처럼 뒤틀린 우리의 육체를 바칠 잔혹한 여왕도 없었다. 우리에게 죽음을 원하게 할 것은 아무것도 없었다. 다만 우리의 용기가 가진 무게로부터 마침내 자유로워지고 싶다는 욕망만이 있었다.
+
+우리는 계속 질주했다. 문지방 위의 감시견들을 들이받고, 뜨거운 타이어 아래에서 그것들을 다리미 밑의 옷깃처럼 말아 넣었다. 길들여진 죽음은 모퉁이마다 나를 맞이했다. 때로는 우아하게 앞발을 내밀었고, 때로는 웅크린 채 웅덩이마다 벨벳 같은 애무의 눈길을 보내왔다.
+
+“지혜라는 끔찍한 껍질을 깨고 나가자. 자부심으로 익은 과일처럼 바람의 넓고 일그러진 입 속으로 몸을 던지자. 절망 때문이 아니라, 부조리의 깊은 우물을 다시 채우기 위해 미지의 것에 우리 자신을 완전히 바치자.”
+
+그 말이 내 입에서 거의 떨어지기도 전에, 나는 자기 꼬리를 물려는 개의 광기로 자동차를 돌렸다. 그때 갑자기 두 명의 자전거 탄 사람이 내 쪽으로 다가오고 있었다. 그들은 주먹을 흔들며, 똑같이 설득력 있지만 서로 모순되는 두 논증처럼 비틀거렸다. 그들의 어리석은 딜레마가 내 길을 막았다. 젠장, 아! 나는 급히 멈추었고, 역겨움 속에서 바퀴를 하늘로 향한 채 도랑에 굴러떨어졌다.
+
+오, 어머니 같은 도랑이여, 진흙물로 거의 가득 찬 도랑이여. 아름다운 공장의 배수로여. 나는 너의 영양 많은 진창을 들이켰고, 내 수단인 유모의 축복받은 검은 젖가슴을 떠올렸다. 뒤집힌 자동차 밑에서 찢기고, 더럽고, 악취를 풍기며 올라왔을 때, 나는 희열의 백열한 쇠가 내 심장을 맛있게 관통하는 것을 느꼈다.
+
+낚싯줄을 든 어부들과 통풍 걸린 박물학자들의 무리가 이미 그 기적 주위로 몰려들고 있었다. 그들은 인내심과 애정을 가지고 높은 기중기와 쇠 갈고리를 설치해, 해변에 떠밀려온 큰 상어처럼 내 자동차를 낚아 올렸다. 자동차는 천천히 도랑에서 올라왔고, 바닥에는 비늘처럼 무거운 상식의 골격과 부드러운 안락의 내장을 남겼다.
+
+사람들은 내 아름다운 상어가 죽었다고 생각했다. 그러나 내 애무 하나면 그것을 되살리기에 충분했다. 그리고 그것은 다시 살아나, 강력한 지느러미로 달렸다.
+
+그리하여 우리는 좋은 공장의 진흙을 얼굴에 바른 채, 금속 폐기물과 무의미한 땀과 천상의 그을음으로 덮인 채, 멍들고 팔에 붕대를 감았지만 두려움 없이, 지상의 모든 살아 있는 것들에게 우리의 높은 의도를 선언했다.
+
+미래주의 선언
+
+1. 우리는 위험에 대한 사랑, 에너지와 대담함의 습관을 노래하고자 한다.
+2. 용기, 대담성, 반란은 우리 시의 본질적인 요소가 될 것이다.
+3. 지금까지 문학은 사색적인 부동성, 황홀, 잠을 찬양해 왔다. 우리는 공격적인 행동, 열병 같은 불면, 경주자의 보폭, 죽음의 도약, 주먹질과 따귀를 찬양하고자 한다.
+4. 우리는 세계의 장엄함이 새로운 아름다움으로 풍요로워졌다고 선언한다. 그것은 속도의 아름다움이다. 폭발하는 숨결의 뱀들처럼 거대한 관들이 후드를 장식한 경주용 자동차, 산탄 위를 달리는 듯 포효하는 자동차는 사모트라케의 니케보다 더 아름답다.
+5. 우리는 운전대에 선 인간을 찬양하고자 한다. 그는 자기 정신의 창을 지구 위로, 그 궤도의 원을 따라 내던진다.
+6. 시인은 원초적 요소들의 열광적인 열기를 부풀리기 위해, 열정과 찬란함과 관대함으로 자신을 소진해야 한다.
+7. 투쟁 밖에는 더 이상 아름다움이 없다. 공격적인 성격을 갖지 않은 작품은 걸작이 될 수 없다. 시는 미지의 힘들에 대한 폭력적인 공격으로 구상되어야 하며, 그것들을 인간 앞에 꿇리고 쓰러뜨려야 한다.
+8. 우리는 세기의 마지막 곶 위에 서 있다. 우리가 원하는 것이 불가능의 신비로운 문들을 부수는 것이라면, 왜 뒤돌아보아야 하는가? 시간과 공간은 어제 죽었다. 우리는 이미 절대 속에 살고 있다. 왜냐하면 우리가 영원하고 편재하는 속도를 창조했기 때문이다.
+9. 우리는 전쟁, 세계의 유일한 위생, 군국주의, 애국주의, 자유를 가져오는 자들의 파괴적 몸짓, 죽을 가치가 있는 아름다운 이념들, 그리고 여성에 대한 경멸을 찬양할 것이다.
+10. 우리는 박물관, 도서관, 온갖 종류의 아카데미를 파괴할 것이며, 도덕주의, 페미니즘, 모든 기회주의적이고 공리주의적인 비겁함과 싸울 것이다.
+
+우리는 노동과 쾌락과 폭동에 흥분한 거대한 군중들을 노래할 것이다. 현대 수도들 속 혁명의 다색적이고 다성적인 밀물을 노래할 것이다. 격렬한 전기의 달빛 아래 타오르는 병기창과 조선소의 밤의 열기를 노래할 것이다. 연기 깃털을 단 뱀들을 집어삼키는 탐욕스러운 기차역들, 연기의 구부러진 선으로 구름에 매달린 공장들, 거대한 체조 선수처럼 강을 성큼성큼 건너며 태양 아래 칼날의 번쩍임으로 빛나는 다리들, 지평선을 킁킁거리는 모험적인 증기선들, 바퀴가 철로를 앞발로 긁는 강철 말 같은 가슴 깊은 기관차들, 그리고 바람 속에서 깃발처럼 재잘거리며 열광적인 군중처럼 환호하는 프로펠러를 단 비행기의 매끈한 비행을 노래할 것이다.
+
+우리는 이 폭력적으로 전복적인 방화의 선언문을 이탈리아에서 세계로 던진다. 오늘 우리는 그것으로 미래주의를 세운다. 왜냐하면 우리는 이 땅을 교수들, 고고학자들, 안내인들, 골동품상들의 악취 나는 괴저로부터 해방시키고자 하기 때문이다. 이탈리아는 너무 오랫동안 중고 의복 장수였다. 우리는 이탈리아를 묘지처럼 뒤덮은 셀 수 없이 많은 박물관들로부터 해방시키려 한다.
+
+박물관, 그것은 묘지다. 서로 알지 못하는 수많은 몸들이 음산하게 뒤섞여 있다는 점에서 확실히 같다. 박물관, 그것은 공공 기숙사다. 그곳에서 사람은 미워하거나 알지 못하는 존재들 옆에 영원히 누워 있다. 박물관, 그것은 화가와 조각가들이 서로를 색채의 타격과 선의 타격으로 잔혹하게 도살하는 부조리한 도살장이다.
+
+해마다 순례를 하는 것, 마치 위령의 날에 묘지에 가듯 그렇게 하는 것, 그것은 인정한다. 일 년에 한 번 모나리자 아래 꽃을 놓는 것, 그것도 인정한다. 그러나 우리의 슬픔, 우리의 연약한 용기, 우리의 병적인 불안을 매일 박물관 관광에 끌고 가는 것은 인정할 수 없다. 왜 우리 자신을 독살하는가? 왜 썩어 가는가?
+
+오래된 그림에서 볼 것이 무엇인가. 자신의 꿈을 완전히 표현하려는 욕망을 가로막는 장벽을 향해 몸을 던지는 예술가의 고통스러운 뒤틀림 말고 무엇이 있는가. 오래된 그림을 감상하는 것은 우리의 감수성을 행동과 창조의 격렬한 경련 속으로 멀리 던지는 대신 장례 항아리 안에 붓는 것과 같다.
+
+그러므로 너희는 과거에 대한 이 영원하고 헛된 숭배 속에서 너희의 가장 좋은 힘을 낭비하고 싶은가? 그곳에서 너희는 치명적으로 지치고, 오그라들고, 얻어맞은 채 나올 뿐이다.
+
+진실로 말하건대, 박물관과 도서관과 아카데미를 매일 방문하는 일은 예술가들에게 해롭다. 미래가 막힌 사람들에게는 경탄할 만한 과거가 위안이 될 수 있다. 그러나 우리는 과거와 아무 상관이 없다. 우리는 젊고 강한 미래주의자들이다.
+
+그러니 오라, 그을린 손가락을 가진 유쾌한 방화범들이여. 도서관 서가에 불을 지르라. 운하의 물길을 돌려 박물관들을 물에 잠기게 하라. 영광스러운 낡은 캔버스들이 그 물 위에서 색이 빠지고 찢긴 채 떠다니는 것을 보는 기쁨이여. 곡괭이와 도끼와 망치를 들어라. 그리고 부수라, 자비 없이 유서 깊은 도시들을 부수라.
+
+우리 중 가장 나이 많은 사람도 서른이다. 그러니 우리에게는 우리의 일을 끝마칠 적어도 십 년이 있다. 우리가 마흔이 되면, 더 젊고 더 강한 사람들이 아마 우리를 쓸모없는 원고처럼 폐지통에 던져 넣을 것이다. 우리는 그것을 원한다.
+
+우리의 후계자들이 우리를 향해 올 것이다. 그들은 먼 곳에서, 사방에서 올 것이다. 그들은 첫 노래의 날개 달린 리듬에 맞춰 춤추며, 포식자의 갈고리 발톱을 구부리고, 학술원의 문 앞에서 개처럼 냄새를 맡을 것이다. 이미 문학의 지하묘지에 맡겨진 우리의 썩어 가는 정신의 강한 냄새를 맡을 것이다.
+
+그들은 우리 주위를 폭풍처럼 에워쌀 것이다. 경멸과 고통으로 헐떡이며, 우리의 당당한 대담함에 격분하여 우리를 죽이려고 달려들 것이다. 그 증오는 그들의 심장이 우리에 대한 사랑과 찬탄에 취해 있을수록 더욱 가차 없을 것이다.
+
+강하고 건강한 불의가 그들의 눈에서 찬란하게 터져 나올 것이다. 사실 예술은 폭력, 잔혹, 불의가 아니고서는 아무것도 될 수 없다.
+
+우리 중 가장 나이 많은 사람도 서른이다. 그러나 우리는 이미 힘, 사랑, 용기, 기민함, 날것의 의지라는 보물 천 개를 흩뿌렸다. 우리를 보라. 우리는 아직 지치지 않았다. 우리의 심장은 피로를 모른다. 그것은 불, 증오, 속도로 먹여지기 때문이다. 세계의 정상에 똑바로 서서, 우리는 다시 한번 별들에게 도전장을 던진다.
+
+고개를 들어라.
+
+세계의 정상에 똑바로 서서, 우리는 다시 한번 별들에게 도전장을 던진다.
+
+`;
+
+/* ============================================================================
+   문자 단위 n-gram 모델
+
+   CORPUS를 한글 자모 단위로 분해한 뒤, 바로 앞 k개의 자모 다음에 어떤 자모가
+   얼마나 자주 왔는지 기록한다. 이 작은 통계표가 작업 속 기계의 기억이다.
+   ============================================================================ */
+const MAXK = 13;
+const decomposed = CORPUS.normalize("NFD");
+const VOCAB = [...new Set(decomposed)];
+const models = [];
+
+(function buildModels() {
+  for (let k = 1; k <= MAXK; k++) {
+    const m = new Map();
+    for (let i = k; i < decomposed.length; i++) {
+      const ctx = decomposed.slice(i - k, i);
+      const next = decomposed[i];
+      let dist = m.get(ctx);
+      if (!dist) {
+        dist = new Map();
+        m.set(ctx, dist);
+      }
+      dist.set(next, (dist.get(next) || 0) + 1);
+    }
+    models[k] = m;
+  }
+})();
+
+/* ============================================================================
+   작업의 온도
+
+   temp는 관객에게 숫자로 보이지 않는다. 대신 글자의 간격, 줄 간격, 흔들림,
+   색의 변화로 감각화된다. 0.7은 기본 온도다.
+   ============================================================================ */
+const TEMP_STEP = 0.12;
+const TEMP_MIN = 0.0;
+const TEMP_MAX = 2.0;
+const BASE_TEMP = 0.62;
+
+let temp = BASE_TEMP;
+let noveltyCount = 0;
+let depthCount = 0;
+let context = decomposed.slice(0, MAXK);
+
+function heatLevel() {
+  return Math.max(0, Math.min(1, (temp - BASE_TEMP) / (TEMP_MAX - BASE_TEMP)));
+}
+
+function depthLevel() {
+  return Math.max(0, Math.min(1, (BASE_TEMP - temp) / BASE_TEMP));
+}
+
+function effOrder() {
+  const k = 7
+    + depthLevel() * 4 + Math.min(depthCount, 12) * 0.35
+    - heatLevel() * 2.4 - Math.min(noveltyCount, 12) * 0.22;
+  return Math.max(1, Math.min(MAXK, Math.round(k)));
+}
+
+function chaos() {
+  return temp <= 1 ? 0 : Math.min(0.65, (temp - 1) * 0.65);
+}
+
+function weightedPick(dist) {
+  if (temp < 0.02) {
+    let best = null;
+    let bestCount = -1;
+    for (const [ch, count] of dist) {
+      if (count > bestCount) {
+        best = ch;
+        bestCount = count;
+      }
+    }
+    return best;
+  }
+
+  const inv = 1 / Math.max(temp, 0.02);
+  let total = 0;
+  const items = [];
+  for (const [ch, count] of dist) {
+    const weight = Math.pow(count, inv);
+    total += weight;
+    items.push([ch, weight]);
+  }
+
+  let r = Math.random() * total;
+  for (const [ch, weight] of items) {
+    r -= weight;
+    if (r <= 0) return ch;
+  }
+  return items[items.length - 1][0];
+}
+
+function sampleNext() {
+  if (Math.random() < chaos()) {
+    return VOCAB[Math.floor(Math.random() * VOCAB.length)];
+  }
+  for (let k = effOrder(); k >= 1; k--) {
+    const dist = models[k].get(context.slice(-k));
+    if (dist) return weightedPick(dist);
+  }
+  return VOCAB[Math.floor(Math.random() * VOCAB.length)];
+}
+
+/* ============================================================================
+   자모 출력
+
+   내부 모델은 한글을 자모 단위로 다루지만, 화면에는 가능한 한 완성형 한글로
+   보이게 한다. 아직 조합이 끝나지 않은 자모는 잠시 pending에 머문다.
+   ============================================================================ */
+const isL = (c) => c >= 0x1100 && c <= 0x115F;
+const isJamo = (c) => c >= 0x1100 && c <= 0x11FF;
+
+let pending = "";
+
+function pushChar(ch) {
+  const code = ch.codePointAt(0);
+  if (isL(code)) {
+    flushPending();
+    pending = ch;
+  } else if (isJamo(code)) {
+    pending += ch;
+    if (pending.length > 4) flushPending();
+  } else {
+    flushPending();
+    emit(ch);
+  }
+}
+
+function flushPending() {
+  if (!pending) return;
+  emit(pending.normalize("NFC"));
+  pending = "";
+}
+
+/* ============================================================================
+   DOM 출력과 시각 변화
+   ============================================================================ */
+const $ = (id) => document.getElementById(id);
+const doneEl = $("done");
+const liveEl = $("live");
+const scrollEl = $("scroll");
+const hintEl = $("hint");
+const pulseEl = $("pulse");
+const driftEl = $("drift");
+const aboutEl = $("about");
+const infoBtn = $("infoBtn");
+
+if (!("ontouchstart" in window)) {
+  $("hintUp").textContent = "↑";
+  $("hintDown").textContent = "↓";
+}
+
+function emit(text) {
+  const trembleAmp = heatLevel() * heatLevel() * 1.6;
+  if (trembleAmp > 0.5 && text.trim()) {
+    const frag = document.createDocumentFragment();
+    for (const ch of text) {
+      if (ch === "\n" || ch === " ") {
+        frag.appendChild(document.createTextNode(ch));
+        continue;
+      }
+      const span = document.createElement("span");
+      span.textContent = ch;
+      const a = trembleAmp * 0.9;
+      span.style.display = "inline-block";
+      span.style.transform = `translate(${(Math.random() - 0.5) * a}px, ${(Math.random() - 0.5) * a}px) rotate(${(Math.random() - 0.5) * a * 1.5}deg)`;
+      frag.appendChild(span);
+    }
+    liveEl.appendChild(frag);
+  } else {
+    liveEl.appendChild(document.createTextNode(text));
+  }
+
+  if (liveEl.childNodes.length > 240) {
+    while (liveEl.firstChild) doneEl.appendChild(liveEl.firstChild);
+    while (doneEl.childNodes.length > 4000) doneEl.removeChild(doneEl.firstChild);
+  }
+  scrollEl.scrollTop = scrollEl.scrollHeight;
+}
+
+function updateVisuals() {
+  const heat = Math.min(1, heatLevel() * 0.8 + Math.min(1, noveltyCount / 12) * 0.35);
+  const depth = Math.min(1, depthLevel() * 0.8 + Math.min(1, depthCount / 12) * 0.35);
+  const root = document.documentElement.style;
+
+  root.setProperty("--spread", `${heat * 0.42 - depth * 0.04}em`);
+  root.setProperty("--line", (1.9 + heat * 0.5 - depth * 0.75).toFixed(3));
+  root.setProperty("--tremble", `${(heat * heat * 1.6).toFixed(2)}px`);
+
+  const r = Math.round(232 - heat * 16 - depth * 110);
+  const g = Math.round(230 - heat * 4 - depth * 115);
+  const b = Math.round(225 + heat * 22 - depth * 100);
+  root.setProperty("--ink", `rgb(${r}, ${g}, ${b})`);
+  updateAmbient();
+}
+
+function pulse() {
+  pulseEl.classList.remove("hit");
+  void pulseEl.offsetWidth;
+  pulseEl.classList.add("hit");
+}
+
+/* ============================================================================
+   Ambient sound
+
+   No audio file is loaded. The page makes a low mechanical drone with Web Audio
+   after the first user gesture. "More new" adds a thin unstable noise layer;
+   "deeper" thickens the low drone.
+   ============================================================================ */
+let audioCtx = null;
+let ambientMaster = null;
+let lowDroneGain = null;
+let highDroneGain = null;
+let noiseGain = null;
+let noiseFilter = null;
+let windLowGain = null;
+let windHighGain = null;
+let windLowFilter = null;
+let windHighFilter = null;
+
+function startAmbient() {
+  if (audioCtx) {
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().then(() => {
+        pingAmbient("start");
+        updateAmbient();
+      });
+    } else {
+      updateAmbient();
+    }
+    return;
+  }
+
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+
+  audioCtx = new AudioContext();
+  ambientMaster = audioCtx.createGain();
+  ambientMaster.gain.value = 0.0001;
+  ambientMaster.connect(audioCtx.destination);
+
+  const lowDrone = audioCtx.createOscillator();
+  lowDrone.type = "sine";
+  lowDrone.frequency.value = 96;
+  lowDroneGain = audioCtx.createGain();
+  lowDroneGain.gain.value = 0.018;
+  lowDrone.connect(lowDroneGain).connect(ambientMaster);
+  lowDrone.start();
+
+  const highDrone = audioCtx.createOscillator();
+  highDrone.type = "triangle";
+  highDrone.frequency.value = 188;
+  highDrone.detune.value = -9;
+  highDroneGain = audioCtx.createGain();
+  highDroneGain.gain.value = 0.006;
+  highDrone.connect(highDroneGain).connect(ambientMaster);
+  highDrone.start();
+
+  const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < noiseData.length; i++) {
+    noiseData[i] = (Math.random() * 2 - 1) * 0.18;
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = noiseBuffer;
+  noise.loop = true;
+  noiseFilter = audioCtx.createBiquadFilter();
+  noiseFilter.type = "bandpass";
+  noiseFilter.frequency.value = 620;
+  noiseFilter.Q.value = 0.7;
+  noiseGain = audioCtx.createGain();
+  noiseGain.gain.value = 0.018;
+  noise.connect(noiseFilter).connect(noiseGain).connect(ambientMaster);
+  noise.start();
+
+  const windBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 4, audioCtx.sampleRate);
+  const windData = windBuffer.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < windData.length; i++) {
+    last = last * 0.985 + (Math.random() * 2 - 1) * 0.015;
+    windData[i] = last;
+  }
+
+  const wind = audioCtx.createBufferSource();
+  wind.buffer = windBuffer;
+  wind.loop = true;
+
+  windLowFilter = audioCtx.createBiquadFilter();
+  windLowFilter.type = "lowpass";
+  windLowFilter.frequency.value = 520;
+  windLowFilter.Q.value = 0.4;
+  windLowGain = audioCtx.createGain();
+  windLowGain.gain.value = 0.32;
+
+  windHighFilter = audioCtx.createBiquadFilter();
+  windHighFilter.type = "bandpass";
+  windHighFilter.frequency.value = 1400;
+  windHighFilter.Q.value = 0.35;
+  windHighGain = audioCtx.createGain();
+  windHighGain.gain.value = 0.075;
+
+  wind.connect(windLowFilter).connect(windLowGain).connect(ambientMaster);
+  wind.connect(windHighFilter).connect(windHighGain).connect(ambientMaster);
+  wind.start();
+
+  pingAmbient("start");
+  updateAmbient();
+}
+
+function updateAmbient() {
+  if (!audioCtx || !ambientMaster) return;
+
+  const now = audioCtx.currentTime;
+  const heat = Math.min(1, heatLevel() + noveltyCount / 18);
+  const depth = Math.min(1, depthLevel() + depthCount / 18);
+
+  ambientMaster.gain.cancelScheduledValues(now);
+  ambientMaster.gain.linearRampToValueAtTime(0.68, now + 1.0);
+
+  lowDroneGain.gain.linearRampToValueAtTime(0.018 + depth * 0.045, now + 0.8);
+  highDroneGain.gain.linearRampToValueAtTime(0.006 + heat * 0.018, now + 0.8);
+  noiseGain.gain.linearRampToValueAtTime(0.018 + heat * 0.035, now + 0.8);
+  noiseFilter.frequency.linearRampToValueAtTime(900 + heat * 1600 - depth * 140, now + 0.8);
+
+  if (windLowGain && windHighGain) {
+    windLowGain.gain.linearRampToValueAtTime(0.32 + depth * 0.18, now + 0.8);
+    windHighGain.gain.linearRampToValueAtTime(0.075 + heat * 0.12, now + 0.8);
+    windLowFilter.frequency.linearRampToValueAtTime(460 + depth * 140, now + 0.8);
+    windHighFilter.frequency.linearRampToValueAtTime(1300 + heat * 1200, now + 0.8);
+  }
+}
+
+function pingAmbient(kind) {
+  if (!audioCtx || !ambientMaster) return;
+
+  const now = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = kind === "depth" || kind === "start" ? "sine" : "triangle";
+  osc.frequency.value = kind === "start" ? 220 : kind === "depth"
+    ? 132 + Math.random() * 56
+    : 760 + Math.random() * 520;
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(kind === "depth" ? 0.08 : kind === "start" ? 0.06 : 0.035, now + 0.04);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "depth" ? 1.1 : kind === "start" ? 0.7 : 0.45));
+  osc.connect(gain).connect(ambientMaster);
+  osc.start(now);
+  osc.stop(now + 1.2);
+
+  if (kind === "depth") {
+    const secondOsc = audioCtx.createOscillator();
+    const secondGain = audioCtx.createGain();
+    secondOsc.type = "triangle";
+    secondOsc.frequency.value = 88;
+    secondGain.gain.setValueAtTime(0.0001, now);
+    secondGain.gain.exponentialRampToValueAtTime(0.045, now + 0.08);
+    secondGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.45);
+    secondOsc.connect(secondGain).connect(ambientMaster);
+    secondOsc.start(now);
+    secondOsc.stop(now + 1.55);
+  }
+}
+
+/* ============================================================================
+   관객의 명령
+
+   명령은 조작이면서 작업 안에 새겨지는 말이다. 새겨진 명령은 다시
+   context에 들어가 다음 출력의 과거가 된다.
+   ============================================================================ */
+let holdUntil = 0;
+let lastCmdSpan = null;
+let sinceStart = false;
+let lastInputAt = 0;
+let relaxing = false;
+
+function inscribeCommand(text) {
+  flushPending();
+
+  if (lastCmdSpan && lastCmdSpan.parentNode) {
+    lastCmdSpan.textContent += ` ${text}`;
+  } else {
+    if (sinceStart) {
+      const cut = document.createElement("span");
+      cut.className = "cut";
+      cut.textContent = " / ";
+      liveEl.appendChild(cut);
+    }
+    const cmd = document.createElement("span");
+    cmd.className = "cmd";
+    cmd.textContent = text;
+    liveEl.appendChild(cmd);
+    lastCmdSpan = cmd;
+    liveEl.appendChild(document.createTextNode(" "));
+  }
+
+  context = (context + text.normalize("NFD") + " ").slice(-MAXK);
+  holdUntil = Date.now() + 700;
+  scrollEl.scrollTop = scrollEl.scrollHeight;
+}
+
+function hitNovelty() {
+  temp = Math.min(TEMP_MAX, +(temp + TEMP_STEP).toFixed(3));
+  noveltyCount++;
+  inscribeCommand("더 새롭게");
+  onInput();
+  pingAmbient("novelty");
+}
+
+function hitDepth() {
+  temp = Math.max(TEMP_MIN, +(temp - TEMP_STEP).toFixed(3));
+  depthCount++;
+  inscribeCommand("더 깊이");
+  onInput();
+  pingAmbient("depth");
+}
+
+function hitReset() {
+  temp = BASE_TEMP;
+  noveltyCount = 0;
+  depthCount = 0;
+  inscribeCommand("처음으로");
+  context = decomposed.slice(0, MAXK);
+  onInput();
+  pingAmbient("depth");
+}
+
+function onInput() {
+  startAmbient();
+  lastInputAt = Date.now();
+  hintEl.classList.add("gone");
+  pulse();
+  updateVisuals();
+}
+
+function relaxTick() {
+  if (!lastInputAt || Date.now() - lastInputAt < 5000) {
+    if (relaxing) {
+      relaxing = false;
+      driftEl.classList.remove("show");
+    }
+    return;
+  }
+
+  const settled = Math.abs(temp - BASE_TEMP) < 0.01 && noveltyCount < 0.1 && depthCount < 0.1;
+  if (settled) {
+    if (relaxing) {
+      relaxing = false;
+      driftEl.classList.remove("show");
+      temp = BASE_TEMP;
+      noveltyCount = 0;
+      depthCount = 0;
+      updateVisuals();
+    }
+    return;
+  }
+
+  if (!relaxing) {
+    relaxing = true;
+    driftEl.textContent =
+      temp > 0.75 ? "열기가 식는 중" :
+      temp < 0.65 ? "문맥이 풀리는 중" : "기본 온도로 돌아가는 중";
+    driftEl.classList.add("show");
+  }
+
+  temp += (BASE_TEMP - temp) * 0.15;
+  noveltyCount = Math.max(0, noveltyCount - 0.5);
+  depthCount = Math.max(0, depthCount - 0.5);
+  updateVisuals();
+}
+
+setInterval(relaxTick, 200);
+
+/* ============================================================================
+   설명 패널과 입력 이벤트
+   ============================================================================ */
+function openAbout(e) {
+  e.stopPropagation();
+  aboutEl.classList.add("open");
+}
+
+function closeAbout(e) {
+  if (e) e.stopPropagation();
+  aboutEl.classList.remove("open");
+}
+
+infoBtn.addEventListener("click", openAbout);
+infoBtn.addEventListener("touchstart", openAbout, { passive: true });
+aboutEl.addEventListener("click", closeAbout);
+aboutEl.addEventListener("touchstart", closeAbout, { passive: true });
+
+document.addEventListener("keydown", (e) => {
+  startAmbient();
+  if (!epiDone) {
+    endEpigraph();
+    return;
+  }
+  if (e.code === "F5" && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    closeAbout();
+    if (!e.repeat) hitReset();
+    return;
+  }
+  if (aboutEl.classList.contains("open")) {
+    closeAbout();
+    return;
+  }
+  if (e.repeat) return;
+  if (e.code === "ArrowUp") {
+    e.preventDefault();
+    hitNovelty();
+  } else if (e.code === "ArrowDown") {
+    e.preventDefault();
+    hitDepth();
+  }
+});
+
+document.addEventListener("pointerdown", () => {
+  startAmbient();
+}, { passive: true });
+
+document.addEventListener("touchstart", (e) => {
+  startAmbient();
+  if (!epiDone) return;
+  if (aboutEl.classList.contains("open")) return;
+  const y = e.touches[0].clientY;
+  if (y < window.innerHeight / 2) hitNovelty();
+  else hitDepth();
+}, { passive: true });
+
+document.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+
+/* ============================================================================
+   생성 루프
+   ============================================================================ */
+function charDelay(ch) {
+  let delay = 46 - heatLevel() * 30 + depthLevel() * 45;
+  if (ch === "." || ch === "\n") delay += 260 + depthLevel() * 420;
+  else if (ch === " " || ch === ",") delay += 40;
+  return delay;
+}
+
+async function loop() {
+  let delay = 400;
+  while (true) {
+    await new Promise((resolve) => setTimeout(resolve, delay));
+    if (Date.now() < holdUntil) {
+      delay = 60;
+      continue;
+    }
+    const ch = sampleNext();
+    context = (context + ch).slice(-MAXK);
+    pushChar(ch);
+    lastCmdSpan = null;
+    sinceStart = true;
+    delay = charDelay(ch);
+  }
+}
+
+/* ============================================================================
+   진입 화면
+   ============================================================================ */
+const epiEl = $("epigraph");
+let epiDone = false;
+
+function endEpigraph() {
+  if (epiDone) return;
+  startAmbient();
+  epiDone = true;
+  epiEl.classList.add("gone");
+  setTimeout(() => hintEl.classList.remove("waiting"), 400);
+  setTimeout(() => hintEl.classList.add("gone"), 4200);
+  setTimeout(loop, 900);
+}
+
+epiEl.addEventListener("click", (e) => {
+  e.stopPropagation();
+  endEpigraph();
+});
+
+epiEl.addEventListener("touchstart", (e) => {
+  e.stopPropagation();
+  endEpigraph();
+}, { passive: true });
+
+setTimeout(endEpigraph, 7000);
+updateVisuals();
+</script>
+</body>
+</html>
