@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -973,10 +974,14 @@ function closeAbout(e) {
   aboutEl.classList.remove("open");
 }
 
+function closeAboutFromBackdrop(e) {
+  if (e.target === aboutEl) closeAbout(e);
+}
+
 infoBtn.addEventListener("click", openAbout);
 infoBtn.addEventListener("touchstart", openAbout, { passive: true });
-aboutEl.addEventListener("click", closeAbout);
-aboutEl.addEventListener("touchstart", closeAbout, { passive: true });
+aboutEl.addEventListener("click", closeAboutFromBackdrop);
+aboutEl.addEventListener("touchstart", closeAboutFromBackdrop, { passive: true });
 
 document.addEventListener("keydown", (e) => {
   startAmbient();
@@ -1017,7 +1022,10 @@ document.addEventListener("touchstart", (e) => {
   else hitDepth();
 }, { passive: true });
 
-document.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+document.addEventListener("touchmove", (e) => {
+  if (aboutEl.classList.contains("open") && e.target.closest("#about .sheet")) return;
+  e.preventDefault();
+}, { passive: false });
 
 /* ============================================================================
    생성 루프
