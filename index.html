@@ -206,10 +206,13 @@
     width: min(34em, 86vw);
     max-height: 82dvh;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     color: #b5b2ac;
     font-size: clamp(13px, 1.7vw, 15px);
     line-height: 1.95;
     word-break: keep-all;
+    cursor: pointer;
   }
 
   #about h2 {
@@ -707,14 +710,27 @@ let windLowGain = null;
 let windHighGain = null;
 let windLowFilter = null;
 let windHighFilter = null;
+let ambientUnlocked = false;
+
+function unlockMobileAudio() {
+  if (!audioCtx || ambientUnlocked) return;
+  ambientUnlocked = true;
+
+  const buffer = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioCtx.destination);
+  source.start(0);
+}
 
 function startAmbient() {
   if (audioCtx) {
+    unlockMobileAudio();
     if (audioCtx.state === "suspended") {
       audioCtx.resume().then(() => {
         pingAmbient("start");
         updateAmbient();
-      });
+      }).catch(() => {});
     } else {
       updateAmbient();
     }
@@ -725,6 +741,7 @@ function startAmbient() {
   if (!AudioContext) return;
 
   audioCtx = new AudioContext();
+  unlockMobileAudio();
   ambientMaster = audioCtx.createGain();
   ambientMaster.gain.value = 0.0001;
   ambientMaster.connect(audioCtx.destination);
@@ -794,6 +811,9 @@ function startAmbient() {
   wind.connect(windHighFilter).connect(windHighGain).connect(ambientMaster);
   wind.start();
 
+  if (audioCtx.state === "suspended") {
+    audioCtx.resume().catch(() => {});
+  }
   pingAmbient("start");
   updateAmbient();
 }
@@ -978,10 +998,37 @@ function closeAboutFromBackdrop(e) {
   if (e.target === aboutEl) closeAbout(e);
 }
 
+let aboutPointer = null;
+
+function aboutScrollTop(target) {
+  const sheet = target.closest ? target.closest("#about .sheet") : null;
+  return sheet ? sheet.scrollTop : 0;
+}
+
+function rememberAboutPointer(e) {
+  if (!aboutEl.classList.contains("open")) return;
+  aboutPointer = {
+    id: e.pointerId,
+    x: e.clientX,
+    y: e.clientY,
+    scrollTop: aboutScrollTop(e.target)
+  };
+}
+
+function closeAboutOnTap(e) {
+  if (!aboutPointer || aboutPointer.id !== e.pointerId) return;
+  const dx = Math.abs(e.clientX - aboutPointer.x);
+  const dy = Math.abs(e.clientY - aboutPointer.y);
+  const scrolled = Math.abs(aboutScrollTop(e.target) - aboutPointer.scrollTop);
+  aboutPointer = null;
+  if (dx < 8 && dy < 8 && scrolled < 2) closeAbout(e);
+}
+
 infoBtn.addEventListener("click", openAbout);
 infoBtn.addEventListener("touchstart", openAbout, { passive: true });
 aboutEl.addEventListener("click", closeAboutFromBackdrop);
-aboutEl.addEventListener("touchstart", closeAboutFromBackdrop, { passive: true });
+aboutEl.addEventListener("pointerdown", rememberAboutPointer, { passive: true });
+aboutEl.addEventListener("pointerup", closeAboutOnTap);
 
 document.addEventListener("keydown", (e) => {
   startAmbient();
@@ -1009,9 +1056,14 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-document.addEventListener("pointerdown", () => {
+function wakeAmbient() {
   startAmbient();
-}, { passive: true });
+}
+
+document.addEventListener("pointerdown", wakeAmbient, { passive: true });
+document.addEventListener("pointerup", wakeAmbient, { passive: true });
+document.addEventListener("click", wakeAmbient, { passive: true });
+document.addEventListener("touchend", wakeAmbient, { passive: true });
 
 document.addEventListener("touchstart", (e) => {
   startAmbient();
@@ -1062,7 +1114,6 @@ let epiDone = false;
 
 function endEpigraph() {
   if (epiDone) return;
-  startAmbient();
   epiDone = true;
   epiEl.classList.add("gone");
   setTimeout(() => hintEl.classList.remove("waiting"), 400);
