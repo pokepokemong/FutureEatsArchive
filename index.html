@@ -166,25 +166,35 @@
 
   #infoBtn {
     position: fixed;
-    right: max(16px, env(safe-area-inset-right));
-    bottom: max(14px, env(safe-area-inset-bottom));
+    right: calc(1.2rem + env(safe-area-inset-right));
+    bottom: calc(1.4rem + env(safe-area-inset-bottom));
     z-index: 30;
-    width: 30px;
-    height: 30px;
+    width: 2.5rem;
+    height: 2.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #4a4a4a;
-    border: 1px solid #242424;
+    color: #e6e2da;
+    border: 1.5px solid rgba(230, 230, 230, 0.7);
     border-radius: 50%;
     font-family: "Nanum Myeongjo", "Noto Serif KR", Georgia, serif;
     font-style: italic;
-    font-size: 15px;
+    font-size: 1.15rem;
     cursor: pointer;
-    transition: color 0.4s ease, border-color 0.4s ease;
+    background: rgba(10, 10, 10, 0.6);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s;
   }
 
-  #infoBtn:hover { color: #999; border-color: #444; }
+  #infoBtn:active,
+  #infoBtn.open,
+  #infoBtn:hover {
+    color: #070707;
+    border-color: #e6e2da;
+    background: #e6e2da;
+  }
 
   #about {
     position: fixed;
@@ -267,13 +277,22 @@
   }
 
   #about .close {
+    display: inline-block;
     font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-    font-size: 0.75em;
-    color: #3f3f3f;
-    letter-spacing: 0.2em;
-    margin-top: 2.4em;
-    text-align: center;
+    font-size: 0.85rem;
+    color: #6f6d68;
+    letter-spacing: 0.05em;
+    margin-top: 1rem;
+    padding: 0;
+    text-align: left;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    touch-action: manipulation;
   }
+
+  #about .close:hover { color: #e6e2da; }
 
   #drift {
     position: fixed;
@@ -367,7 +386,7 @@
       <span class="k">i</span>작업 설명.
     </p>
 
-    <div class="close">화면을 누르면 닫힙니다</div>
+    <button class="close" type="button" aria-label="닫기">닫기</button>
   </div>
 </div>
 
@@ -637,6 +656,7 @@ const pulseEl = $("pulse");
 const driftEl = $("drift");
 const aboutEl = $("about");
 const infoBtn = $("infoBtn");
+const closeBtn = document.querySelector("#about .close");
 
 if (!("ontouchstart" in window)) {
   $("hintUp").textContent = "↑";
@@ -987,15 +1007,18 @@ setInterval(relaxTick, 200);
 function openAbout(e) {
   e.stopPropagation();
   aboutEl.classList.add("open");
+  infoBtn.classList.add("open");
 }
 
 function closeAbout(e) {
   if (e) e.stopPropagation();
   aboutEl.classList.remove("open");
+  infoBtn.classList.remove("open");
 }
 
 let aboutPointer = null;
 let aboutTouch = null;
+let aboutTouchMoved = false;
 
 function aboutScrollTop(target) {
   const sheet = target.closest ? target.closest("#about .sheet") : null;
@@ -1024,12 +1047,22 @@ function closeAboutOnTap(e) {
 function rememberAboutTouch(e) {
   if (!aboutEl.classList.contains("open") || !e.changedTouches.length) return;
   const touch = e.changedTouches[0];
+  aboutTouchMoved = false;
   aboutTouch = {
     id: touch.identifier,
     x: touch.clientX,
     y: touch.clientY,
     scrollTop: aboutScrollTop(e.target)
   };
+}
+
+function markAboutTouchMove(e) {
+  if (!aboutTouch || !e.changedTouches.length) return;
+  const touch = Array.from(e.changedTouches).find((item) => item.identifier === aboutTouch.id);
+  if (!touch) return;
+  const dx = Math.abs(touch.clientX - aboutTouch.x);
+  const dy = Math.abs(touch.clientY - aboutTouch.y);
+  if (dx > 10 || dy > 10) aboutTouchMoved = true;
 }
 
 function closeAboutOnTouchTap(e) {
@@ -1040,7 +1073,8 @@ function closeAboutOnTouchTap(e) {
   const dy = Math.abs(touch.clientY - aboutTouch.y);
   const scrolled = Math.abs(aboutScrollTop(e.target) - aboutTouch.scrollTop);
   aboutTouch = null;
-  if (dx < 10 && dy < 10 && scrolled < 2) closeAbout(e);
+  if (!aboutTouchMoved && dx < 12 && dy < 12 && scrolled < 3) closeAbout(e);
+  aboutTouchMoved = false;
 }
 
 infoBtn.addEventListener("click", openAbout);
@@ -1049,7 +1083,13 @@ aboutEl.addEventListener("click", closeAbout);
 aboutEl.addEventListener("pointerdown", rememberAboutPointer, { passive: true });
 aboutEl.addEventListener("pointerup", closeAboutOnTap);
 aboutEl.addEventListener("touchstart", rememberAboutTouch, { passive: true });
+aboutEl.addEventListener("touchmove", markAboutTouchMove, { passive: true });
 aboutEl.addEventListener("touchend", closeAboutOnTouchTap, { passive: false });
+closeBtn.addEventListener("click", closeAbout);
+closeBtn.addEventListener("touchend", closeAbout, { passive: false });
+document.addEventListener("touchstart", rememberAboutTouch, { capture: true, passive: true });
+document.addEventListener("touchmove", markAboutTouchMove, { capture: true, passive: true });
+document.addEventListener("touchend", closeAboutOnTouchTap, { capture: true, passive: false });
 
 document.addEventListener("keydown", (e) => {
   startAmbient();
